@@ -67,7 +67,7 @@ export const HeroSection = ({ onApplyClick }: HeroSectionProps) => {
             Flexible Funding
             <br />
             <span className="bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
-              from $5,000 to $100,000
+              from $5,000 to $50,000
             </span>
           </h1>
           
