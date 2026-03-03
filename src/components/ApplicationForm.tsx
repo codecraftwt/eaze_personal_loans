@@ -119,6 +119,7 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showSSN, setShowSSN] = useState(true);
+  const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
 
@@ -171,6 +172,11 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
 
   const updateFormData = (field: keyof FormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    setFieldErrors(prev => {
+      const next = new Set(prev);
+      next.delete(field);
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -223,7 +229,87 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
   };
 
   const validateStep = (currentStep: FormStep): boolean => {
-    // TEMP: All validation disabled for testing
+    const requiredByStep: Record<FormStep, (keyof FormData)[]> = {
+      1: ['loanAmount', 'loanPurpose'],
+      2: ['firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'ssn', 'driversLicense', 'driversLicenseState'],
+      3: ['zipCode', 'street', 'city', 'state', 'yearsAtAddress', 'residenceType', 'monthlyPayment'],
+      4: ['educationLevel', 'creditScore'],
+      5: ['employmentStatus', 'annualIncome', 'employerName', 'jobTitle', 'employmentStartDate', 'payFrequency', 'payrollType'],
+    };
+
+    const fields = requiredByStep[currentStep];
+    const errors = new Set<string>();
+
+    for (const field of fields) {
+      const value = formData[field];
+      if (typeof value === 'string' && !value.trim()) {
+        errors.add(field);
+      }
+    }
+
+    if (currentStep === 2) {
+      if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        errors.add('email');
+      }
+      if (formData.phone && formData.phone.replace(/\D/g, '').length < 10) {
+        errors.add('phone');
+      }
+      if (formData.ssn && formData.ssn.replace(/\D/g, '').length < 9) {
+        errors.add('ssn');
+      }
+    }
+
+    if (currentStep === 3) {
+      if (formData.zipCode && formData.zipCode.replace(/\D/g, '').length < 5) {
+        errors.add('zipCode');
+      }
+    }
+
+    if (currentStep === 5 && !formData.consent) {
+      errors.add('consent');
+    }
+
+    if (errors.size > 0) {
+      setFieldErrors(errors);
+      toast({
+        title: "Required Fields Missing",
+        description: "Please fill in all required fields before continuing.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    setFieldErrors(new Set());
+    return true;
+  };
+
+  const isStepComplete = (currentStep: FormStep): boolean => {
+    const requiredByStep: Record<FormStep, (keyof FormData)[]> = {
+      1: ['loanAmount', 'loanPurpose'],
+      2: ['firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'ssn', 'driversLicense', 'driversLicenseState'],
+      3: ['zipCode', 'street', 'city', 'state', 'yearsAtAddress', 'residenceType', 'monthlyPayment'],
+      4: ['educationLevel', 'creditScore'],
+      5: ['employmentStatus', 'annualIncome', 'employerName', 'jobTitle', 'employmentStartDate', 'payFrequency', 'payrollType'],
+    };
+
+    const fields = requiredByStep[currentStep];
+    for (const field of fields) {
+      const value = formData[field];
+      if (typeof value === 'string' && !value.trim()) return false;
+    }
+
+    if (currentStep === 2) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return false;
+      if (formData.phone.replace(/\D/g, '').length < 10) return false;
+      if (formData.ssn.replace(/\D/g, '').length < 9) return false;
+    }
+
+    if (currentStep === 3) {
+      if (formData.zipCode.replace(/\D/g, '').length < 5) return false;
+    }
+
+    if (currentStep === 5 && !formData.consent) return false;
+
     return true;
   };
 
@@ -372,10 +458,10 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
     >
       <div>
         <Label className="text-sm font-semibold text-foreground mb-2 block">
-          How much funding do you need?
+          How much funding do you need?<span className="text-destructive ml-0.5">*</span>
         </Label>
         <Select value={formData.loanAmount} onValueChange={(v) => updateFormData('loanAmount', v)}>
-          <SelectTrigger className={inputClass}>
+          <SelectTrigger className={`${inputClass}${fieldErrors.has('loanAmount') ? ' border-destructive' : ''}`}>
             <SelectValue placeholder="Select loan amount" />
           </SelectTrigger>
           <SelectContent>
@@ -388,10 +474,10 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
 
       <div>
         <Label className="text-sm font-semibold text-foreground mb-2 block">
-          What is the purpose of the loan?
+          What is the purpose of the loan?<span className="text-destructive ml-0.5">*</span>
         </Label>
         <Select value={formData.loanPurpose} onValueChange={(v) => updateFormData('loanPurpose', v)}>
-          <SelectTrigger className={inputClass}>
+          <SelectTrigger className={`${inputClass}${fieldErrors.has('loanPurpose') ? ' border-destructive' : ''}`}>
             <SelectValue placeholder="Select purpose" />
           </SelectTrigger>
           <SelectContent>
@@ -423,40 +509,43 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
     >
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-sm font-semibold text-foreground mb-2 block">First Name</Label>
+          <Label className="text-sm font-semibold text-foreground mb-2 block">First Name<span className="text-destructive ml-0.5">*</span></Label>
           <Input
-            className={inputClass}
+            className={`${inputClass}${fieldErrors.has('firstName') ? ' border-destructive' : ''}`}
             value={formData.firstName}
             onChange={(e) => updateFormData('firstName', e.target.value)}
             placeholder="John"
+            required
           />
         </div>
         <div>
-          <Label className="text-sm font-semibold text-foreground mb-2 block">Last Name</Label>
+          <Label className="text-sm font-semibold text-foreground mb-2 block">Last Name<span className="text-destructive ml-0.5">*</span></Label>
           <Input
-            className={inputClass}
+            className={`${inputClass}${fieldErrors.has('lastName') ? ' border-destructive' : ''}`}
             value={formData.lastName}
             onChange={(e) => updateFormData('lastName', e.target.value)}
             placeholder="Doe"
+            required
           />
         </div>
       </div>
 
       <div>
-        <Label className="text-sm font-semibold text-foreground mb-2 block">Email Address</Label>
+        <Label className="text-sm font-semibold text-foreground mb-2 block">Email Address<span className="text-destructive ml-0.5">*</span></Label>
         <Input
-          className={inputClass}
+          className={`${inputClass}${fieldErrors.has('email') ? ' border-destructive' : ''}`}
           type="email"
           value={formData.email}
           onChange={(e) => updateFormData('email', e.target.value)}
           placeholder="john.doe@example.com"
+          required
         />
       </div>
 
       <div>
-        <Label className="text-sm font-semibold text-foreground mb-2 block">Cell Phone</Label>
+        <Label className="text-sm font-semibold text-foreground mb-2 block">Cell Phone<span className="text-destructive ml-0.5">*</span></Label>
         <Input
-          className={inputClass}
+          className={`${inputClass}${fieldErrors.has('phone') ? ' border-destructive' : ''}`}
           type="tel"
           value={formatPhoneNumber(formData.phone)}
           onChange={(e) => {
@@ -465,28 +554,30 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
           }}
           maxLength={14}
           placeholder="(555) 123-4567"
+          required
         />
         <p className="text-xs text-muted-foreground mt-1">Do not list a landline</p>
       </div>
 
       <div>
-        <Label className="text-sm font-semibold text-foreground mb-2 block">Date of Birth</Label>
+        <Label className="text-sm font-semibold text-foreground mb-2 block">Date of Birth<span className="text-destructive ml-0.5">*</span></Label>
         <Input
-          className={inputClass}
+          className={`${inputClass}${fieldErrors.has('dateOfBirth') ? ' border-destructive' : ''}`}
           type="date"
           value={formData.dateOfBirth}
           onChange={(e) => updateFormData('dateOfBirth', e.target.value)}
+          required
         />
       </div>
 
       <div>
         <Label className="text-sm font-semibold text-foreground mb-2 block">
-          Social Security Number
+          Social Security Number<span className="text-destructive ml-0.5">*</span>
           <span className="text-muted-foreground font-normal ml-2">(for soft pull only)</span>
         </Label>
         <div className="relative">
           <Input
-            className={`${inputClass} pr-20`}
+            className={`${inputClass} pr-20${fieldErrors.has('ssn') ? ' border-destructive' : ''}`}
             type={showSSN ? "text" : "password"}
             value={formData.ssn}
             onChange={(e) => {
@@ -498,6 +589,7 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
             }}
             maxLength={9}
             placeholder="XXX-XX-XXXX"
+            required
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3 z-10">
             <Lock className="w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -518,9 +610,9 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-sm font-semibold text-foreground mb-2 block">Driver's License #</Label>
+          <Label className="text-sm font-semibold text-foreground mb-2 block">Driver's License #<span className="text-destructive ml-0.5">*</span></Label>
           <Input
-            className={inputClass}
+            className={`${inputClass}${fieldErrors.has('driversLicense') ? ' border-destructive' : ''}`}
             value={formData.driversLicense}
             onChange={(e) => {
               const value = e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 15).toUpperCase();
@@ -528,12 +620,13 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
             }}
             maxLength={15}
             placeholder="License Number"
+            required
           />
         </div>
         <div>
-          <Label className="text-sm font-semibold text-foreground mb-2 block">Issued State</Label>
+          <Label className="text-sm font-semibold text-foreground mb-2 block">Issued State<span className="text-destructive ml-0.5">*</span></Label>
           <Select value={formData.driversLicenseState} onValueChange={(v) => updateFormData('driversLicenseState', v)}>
-            <SelectTrigger className={inputClass}>
+            <SelectTrigger className={`${inputClass}${fieldErrors.has('driversLicenseState') ? ' border-destructive' : ''}`}>
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
@@ -555,9 +648,9 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
       className="space-y-5"
     >
       <div>
-        <Label className="text-sm font-semibold text-foreground mb-2 block">Zip Code</Label>
+        <Label className="text-sm font-semibold text-foreground mb-2 block">Zip Code<span className="text-destructive ml-0.5">*</span></Label>
         <Input
-          className={inputClass}
+          className={`${inputClass}${fieldErrors.has('zipCode') ? ' border-destructive' : ''}`}
           value={formData.zipCode}
           onChange={(e) => {
             const value = e.target.value.replace(/\D/g, '').slice(0, 5);
@@ -565,33 +658,36 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
           }}
           maxLength={5}
           placeholder="10001"
+          required
         />
       </div>
 
       <div>
-        <Label className="text-sm font-semibold text-foreground mb-2 block">Street Address</Label>
+        <Label className="text-sm font-semibold text-foreground mb-2 block">Street Address<span className="text-destructive ml-0.5">*</span></Label>
         <Input
-          className={inputClass}
+          className={`${inputClass}${fieldErrors.has('street') ? ' border-destructive' : ''}`}
           value={formData.street}
           onChange={(e) => updateFormData('street', e.target.value)}
           placeholder="123 Main St"
+          required
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-sm font-semibold text-foreground mb-2 block">City</Label>
+          <Label className="text-sm font-semibold text-foreground mb-2 block">City<span className="text-destructive ml-0.5">*</span></Label>
           <Input
-            className={inputClass}
+            className={`${inputClass}${fieldErrors.has('city') ? ' border-destructive' : ''}`}
             value={formData.city}
             onChange={(e) => updateFormData('city', e.target.value)}
             placeholder="New York"
+            required
           />
         </div>
         <div>
-          <Label className="text-sm font-semibold text-foreground mb-2 block">State</Label>
+          <Label className="text-sm font-semibold text-foreground mb-2 block">State<span className="text-destructive ml-0.5">*</span></Label>
           <Select value={formData.state} onValueChange={(v) => updateFormData('state', v)}>
-            <SelectTrigger className={inputClass}>
+            <SelectTrigger className={`${inputClass}${fieldErrors.has('state') ? ' border-destructive' : ''}`}>
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
@@ -604,9 +700,9 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
       </div>
 
       <div>
-        <Label className="text-sm font-semibold text-foreground mb-2 block">Years at This Address</Label>
+        <Label className="text-sm font-semibold text-foreground mb-2 block">Years at This Address<span className="text-destructive ml-0.5">*</span></Label>
         <Select value={formData.yearsAtAddress} onValueChange={(v) => updateFormData('yearsAtAddress', v)}>
-          <SelectTrigger className={inputClass}>
+          <SelectTrigger className={`${inputClass}${fieldErrors.has('yearsAtAddress') ? ' border-destructive' : ''}`}>
             <SelectValue placeholder="Select" />
           </SelectTrigger>
           <SelectContent>
@@ -620,9 +716,9 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-sm font-semibold text-foreground mb-2 block">Residence Type</Label>
+          <Label className="text-sm font-semibold text-foreground mb-2 block">Residence Type<span className="text-destructive ml-0.5">*</span></Label>
           <Select value={formData.residenceType} onValueChange={(v) => updateFormData('residenceType', v)}>
-            <SelectTrigger className={inputClass}>
+            <SelectTrigger className={`${inputClass}${fieldErrors.has('residenceType') ? ' border-destructive' : ''}`}>
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
@@ -634,13 +730,14 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
           </Select>
         </div>
         <div>
-          <Label className="text-sm font-semibold text-foreground mb-2 block">Monthly Rent/Mortgage</Label>
+          <Label className="text-sm font-semibold text-foreground mb-2 block">Monthly Rent/Mortgage<span className="text-destructive ml-0.5">*</span></Label>
           <Input
-            className={inputClass}
+            className={`${inputClass}${fieldErrors.has('monthlyPayment') ? ' border-destructive' : ''}`}
             type="number"
             value={formData.monthlyPayment}
             onChange={(e) => updateFormData('monthlyPayment', e.target.value)}
             placeholder="1500"
+            required
           />
         </div>
       </div>
@@ -655,9 +752,9 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
       className="space-y-5"
     >
       <div>
-        <Label className="text-sm font-semibold text-foreground mb-2 block">Highest Education Level</Label>
+        <Label className="text-sm font-semibold text-foreground mb-2 block">Highest Education Level<span className="text-destructive ml-0.5">*</span></Label>
         <Select value={formData.educationLevel} onValueChange={(v) => updateFormData('educationLevel', v)}>
-          <SelectTrigger className={inputClass}>
+          <SelectTrigger className={`${inputClass}${fieldErrors.has('educationLevel') ? ' border-destructive' : ''}`}>
             <SelectValue placeholder="Select" />
           </SelectTrigger>
           <SelectContent>
@@ -671,9 +768,9 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
       </div>
 
       <div>
-        <Label className="text-sm font-semibold text-foreground mb-2 block">Estimate Your Credit Score</Label>
+        <Label className="text-sm font-semibold text-foreground mb-2 block">Estimate Your Credit Score<span className="text-destructive ml-0.5">*</span></Label>
         <Select value={formData.creditScore} onValueChange={(v) => updateFormData('creditScore', v)}>
-          <SelectTrigger className={inputClass}>
+          <SelectTrigger className={`${inputClass}${fieldErrors.has('creditScore') ? ' border-destructive' : ''}`}>
             <SelectValue placeholder="Select" />
           </SelectTrigger>
           <SelectContent>
@@ -695,9 +792,9 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
       className="space-y-5"
     >
       <div>
-        <Label className="text-sm font-semibold text-foreground mb-2 block">Employment Status</Label>
+        <Label className="text-sm font-semibold text-foreground mb-2 block">Employment Status<span className="text-destructive ml-0.5">*</span></Label>
         <Select value={formData.employmentStatus} onValueChange={(v) => updateFormData('employmentStatus', v)}>
-          <SelectTrigger className={inputClass}>
+          <SelectTrigger className={`${inputClass}${fieldErrors.has('employmentStatus') ? ' border-destructive' : ''}`}>
             <SelectValue placeholder="Select" />
           </SelectTrigger>
           <SelectContent>
@@ -713,52 +810,56 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
       </div>
 
       <div>
-        <Label className="text-sm font-semibold text-foreground mb-2 block">Yearly Pre-Tax Income</Label>
+        <Label className="text-sm font-semibold text-foreground mb-2 block">Yearly Pre-Tax Income<span className="text-destructive ml-0.5">*</span></Label>
         <Input
-          className={inputClass}
+          className={`${inputClass}${fieldErrors.has('annualIncome') ? ' border-destructive' : ''}`}
           type="number"
           value={formData.annualIncome}
           onChange={(e) => updateFormData('annualIncome', e.target.value)}
           placeholder="75000"
+          required
         />
         <p className="text-xs text-muted-foreground mt-1">Include bonuses, commissions, etc.</p>
       </div>
 
       <div>
-        <Label className="text-sm font-semibold text-foreground mb-2 block">Employer Name</Label>
+        <Label className="text-sm font-semibold text-foreground mb-2 block">Employer Name<span className="text-destructive ml-0.5">*</span></Label>
         <Input
-          className={inputClass}
+          className={`${inputClass}${fieldErrors.has('employerName') ? ' border-destructive' : ''}`}
           value={formData.employerName}
           onChange={(e) => updateFormData('employerName', e.target.value)}
           placeholder="Acme Inc."
+          required
         />
       </div>
 
       <div>
-        <Label className="text-sm font-semibold text-foreground mb-2 block">Job Title</Label>
+        <Label className="text-sm font-semibold text-foreground mb-2 block">Job Title<span className="text-destructive ml-0.5">*</span></Label>
         <Input
-          className={inputClass}
+          className={`${inputClass}${fieldErrors.has('jobTitle') ? ' border-destructive' : ''}`}
           value={formData.jobTitle}
           onChange={(e) => updateFormData('jobTitle', e.target.value)}
           placeholder="Software Engineer"
+          required
         />
       </div>
 
       <div>
-        <Label className="text-sm font-semibold text-foreground mb-2 block">Employment Start Date</Label>
+        <Label className="text-sm font-semibold text-foreground mb-2 block">Employment Start Date<span className="text-destructive ml-0.5">*</span></Label>
         <Input
-          className={inputClass}
+          className={`${inputClass}${fieldErrors.has('employmentStartDate') ? ' border-destructive' : ''}`}
           type="date"
           value={formData.employmentStartDate}
           onChange={(e) => updateFormData('employmentStartDate', e.target.value)}
+          required
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-sm font-semibold text-foreground mb-2 block">Payroll Frequency</Label>
+          <Label className="text-sm font-semibold text-foreground mb-2 block">Payroll Frequency<span className="text-destructive ml-0.5">*</span></Label>
           <Select value={formData.payFrequency} onValueChange={(v) => updateFormData('payFrequency', v)}>
-            <SelectTrigger className={inputClass}>
+            <SelectTrigger className={`${inputClass}${fieldErrors.has('payFrequency') ? ' border-destructive' : ''}`}>
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
@@ -771,9 +872,9 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
           </Select>
         </div>
         <div>
-          <Label className="text-sm font-semibold text-foreground mb-2 block">Payroll Type</Label>
+          <Label className="text-sm font-semibold text-foreground mb-2 block">Payroll Type<span className="text-destructive ml-0.5">*</span></Label>
           <Select value={formData.payrollType} onValueChange={(v) => updateFormData('payrollType', v)}>
-            <SelectTrigger className={inputClass}>
+            <SelectTrigger className={`${inputClass}${fieldErrors.has('payrollType') ? ' border-destructive' : ''}`}>
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
@@ -785,7 +886,7 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
         </div>
       </div>
 
-      <div className="p-5 rounded-xl border-2 border-border bg-muted/30">
+      <div className={`p-5 rounded-xl border-2 bg-muted/30 ${fieldErrors.has('consent') ? 'border-destructive' : 'border-border'}`}>
         <div className="flex items-start space-x-3">
           <Checkbox
             id="consent"
@@ -878,6 +979,7 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
             {step < 5 ? (
               <Button
                 onClick={nextStep}
+                disabled={!isStepComplete(step)}
                 className="flex items-center gap-2 rounded-xl px-8 btn-primary"
               >
                 Continue <ArrowRight className="w-4 h-4" />
@@ -885,7 +987,7 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={isSubmitting || !formData.consent}
+                disabled={isSubmitting || !isStepComplete(5)}
                 className="flex items-center gap-2 rounded-xl px-8 bg-success hover:bg-success/90 text-success-foreground"
               >
                 {isSubmitting ? (

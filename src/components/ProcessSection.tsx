@@ -33,7 +33,8 @@ const steps = [
     title: "Get Your Funds",
     description: "Once approved, funds are deposited directly into your bank account within days.",
     features: ["Fast disbursement", "Direct deposit", "Track your status"],
-    color: "hsl(39 100% 50%)",
+    // color: "hsl(39 100% 50%)",
+    color: "hsl(222 52% 25%)",
   },
 ];
 
@@ -50,7 +51,7 @@ export const ProcessSection = ({ onApplyClick }: ProcessSectionProps) => {
           </div>
           <h2 className="section-title">
             Three Simple Steps to{" "}
-            <span className="gradient-text-gold">Your Funding</span>
+            <span className="gradient-text-gold" style={{ color: '#1f3563' }}>Your Funding</span>
           </h2>
           <p className="section-subtitle mx-auto">
             Our streamlined process gets you from application to funding faster than traditional lenders.

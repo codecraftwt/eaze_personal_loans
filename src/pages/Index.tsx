@@ -80,10 +80,10 @@ const Index = () => {
         
         <div className="max-w-4xl mx-auto px-6 lg:px-8 relative">
           <div className="glass-card-elevated p-10 md:p-14 text-center">
-            <h2 className="section-title mb-4">
-              Ready to Get{" "}
-              <span className="gradient-text-gold">Started</span>?
+            <h2 className="section-title mb-4" style={{ color: '#1f3563' }}>
+              Ready to Get Started?
             </h2>
+            {/* Ready to Get Started? */}
             <p className="section-subtitle mx-auto mb-8">
               Join over 25,000 satisfied customers who have secured funding through EAZE. 
               Check your rate in minutes with no impact to your credit score.
@@ -118,7 +118,7 @@ const Index = () => {
                 <span>A+ BBB Rating</span>
               </div>
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-secondary" />
+                <Clock className="w-4 h-4 text-accent" />
                 <span>Funds in 3-5 Days</span>
               </div>
             </div>

@@ -61,15 +61,15 @@ export const TestimonialsSection = () => {
               {/* Quote icon */}
               <div className="absolute -top-3 right-6">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                     style={{ background: 'var(--gradient-gold)' }}>
-                  <Quote className="w-4 h-4 text-secondary-foreground" />
+                  style={{ backgroundColor: '#1f3563' }}>
+                  <Quote className="w-4 h-4 text-white" />
                 </div>
               </div>
 
               {/* Stars */}
               <div className="flex gap-0.5 mb-4">
                 {Array.from({ length: testimonial.rating }).map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-secondary text-secondary" />
+                  <Star key={i} className="w-4 h-4 fill-[#1f3563] text-[#1f3563]" />
                 ))}
               </div>
 
