@@ -120,10 +120,17 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showSSN, setShowSSN] = useState(true);
   const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set());
+  const [urlParams, setUrlParams] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
 
-
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    searchParams.forEach((value, key) => {
+      params[key] = value;
+    });
+    setUrlParams(params);
+  }, [searchParams]);
 
   // --- REDUX HOOKS ---
   const dispatch = useAppDispatch();
@@ -350,7 +357,7 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
       // The thunk in api.ts will wrap this in { jsonbody: userData }
       const resultAction = await dispatch(sendMainApplicationData({
         accountId: formData.businessAccountId || "0015w00002PoGAnAAN",
-        userData: { ...formData }
+        userData: { ...formData, urlParams }
       }));
 
       if (sendMainApplicationData.fulfilled.match(resultAction)) {
