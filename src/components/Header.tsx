@@ -46,7 +46,7 @@ export const Header = ({ onApplyClick }: HeaderProps) => {
               className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               <Phone className="w-4 h-4" />
-              1-800-123-4567
+             +17029156529
             </a>
             <button onClick={onApplyClick} className="btn-primary py-3 px-6 text-sm">
               Check Your Rate
