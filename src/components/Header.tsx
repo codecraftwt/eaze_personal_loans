@@ -42,7 +42,7 @@ export const Header = ({ onApplyClick }: HeaderProps) => {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-4">
             <a
-              href="tel:1-800-123-4567"
+              href="tel:+17029156529"
               className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               <Phone className="w-4 h-4" />

@@ -61,7 +61,7 @@ export const Footer = ({ onApplyClick }: FooterProps) => {
               <li className="flex items-center gap-3">
                 <Phone className="w-4 h-4 flex-shrink-0" />
                 <a href="tel:+1234567890" className="hover:text-background transition-colors">
-                  +123-456-7890
+                  +17029156529
                 </a>
               </li>
               <li className="flex items-center gap-3">
