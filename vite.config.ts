@@ -11,6 +11,16 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    // Dev-only: browser → same-origin → Vite proxies to Salesforce (avoids CORS on localhost).
+    proxy: {
+      "/api/salesforce-public": {
+        target: "https://eazeconsulting.my.salesforce-sites.com",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) =>
+          path.replace(/^\/api\/salesforce-public\/?$/, "/api/services/apexrest/public-api/"),
+      },
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

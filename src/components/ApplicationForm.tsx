@@ -7,8 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, ArrowRight, Loader2, Shield, Lock, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAppDispatch, useAppSelector } from "@/store/store";
-import { fetchSalesforceToken, sendMainApplicationData } from "@/store/api";
+import { useAppDispatch } from "@/store/store";
+import { sendMainApplicationData } from "@/store/api";
 import { useSearchParams } from "react-router-dom";
 
 interface ApplicationFormProps {
@@ -132,17 +132,7 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
     setUrlParams(params);
   }, [searchParams]);
 
-  // --- REDUX HOOKS ---
   const dispatch = useAppDispatch();
-  const { salesforceToken } = useAppSelector((state) => state.salesforce);
-  const { toast: uiToast } = useToast();
-
-  // 3. Optional: Auto-fetch token when component mounts if it's missing
-  useEffect(() => {
-    if (!salesforceToken) {
-      dispatch(fetchSalesforceToken());
-    }
-  }, [dispatch, salesforceToken]);
 
   // Lock body scroll when modal is open (prevents background scrolling on mobile)
   useEffect(() => {
@@ -336,39 +326,29 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
     }
     console.log(formData, 'formData')
 
-    // Check if we have a token before proceeding
-    if (!salesforceToken) {
-      uiToast({
-        title: "Authentication Error",
-        description: "Salesforce token not found. Please wait or try again.",
-        variant: "destructive",
-      });
-      dispatch(fetchSalesforceToken()); // Try to fetch it again
-      return;
-    }
-    // setIsSubmitting(true);
-    // await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // setIsSubmitting(false);
-    // setIsSubmitted(true);
+    setIsSubmitting(true);
 
     try {
-      // Dispatch the thunk with your formData
-      // The thunk in api.ts will wrap this in { jsonbody: userData }
       const resultAction = await dispatch(sendMainApplicationData({
         accountId: formData.businessAccountId || "0015w00002PoGAnAAN",
         userData: { ...formData, urlParams }
       }));
 
       if (sendMainApplicationData.fulfilled.match(resultAction)) {
-        // Success logic
         setIsSubmitted(true);
       } else {
-        // Error case: resultAction.payload contains the error message from rejectWithValue
         console.error("Submission failed:", resultAction.payload);
+        toast({
+          title: "We couldn't send your application",
+          description: "Please try again in a moment. If it keeps happening, contact EAZE.",
+        });
       }
     } catch (err) {
       console.error("Unexpected Error:", err);
+      toast({
+        title: "We couldn't send your application",
+        description: "Please try again in a moment. If it keeps happening, contact EAZE.",
+      });
     } finally {
       setIsSubmitting(false);
     }
