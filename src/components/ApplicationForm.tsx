@@ -121,6 +121,7 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
   const [showSSN, setShowSSN] = useState(true);
   const [fieldErrors, setFieldErrors] = useState<Set<string>>(new Set());
   const [urlParams, setUrlParams] = useState<Record<string, string>>({});
+  const [userIP, setUserIP] = useState('');
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
 
@@ -131,6 +132,33 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
     });
     setUrlParams(params);
   }, [searchParams]);
+
+  useEffect(() => {
+    const ipApis = [
+      'https://api.ipify.org?format=json',
+      'https://ipinfo.io/json',
+      'https://api.my-ip.io/v2/ip.json',
+    ];
+
+    const fetchIP = async () => {
+      for (const url of ipApis) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) continue;
+          const data = await res.json();
+          const ip = data.ip || data.ipAddress || '';
+          if (ip) {
+            setUserIP(ip);
+            return;
+          }
+        } catch {
+          continue;
+        }
+      }
+    };
+
+    fetchIP();
+  }, []);
 
   const dispatch = useAppDispatch();
 
@@ -331,7 +359,7 @@ export const ApplicationForm = ({ onClose }: ApplicationFormProps) => {
     try {
       const resultAction = await dispatch(sendMainApplicationData({
         accountId: formData.businessAccountId || "0015w00002PoGAnAAN",
-        userData: { ...formData, urlParams }
+        userData: { ...formData, urlParams, userAgent: navigator.userAgent, userIP }
       }));
 
       if (sendMainApplicationData.fulfilled.match(resultAction)) {
